@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>{{标题}}｜一页纸汇报</title>
+<!--
+  高管一页纸汇报 · 通用模板
+  用法：把 {{...}} 换成真实内容，其他一律不动。
+  节点文字必须手工 <br> 控行（12px 下每列约 9 个中文字宽）。
+  截图：Chrome headless --force-device-scale-factor=2 --window-size=1130,1000
+-->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f4f4f2; color: #1c1c1e;
+    -webkit-font-smoothing: antialiased; padding: 24px 16px;
+  }
+  .page { width: 1080px; margin: 0 auto; background: #fff; padding: 42px 48px 40px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 8px 28px rgba(0,0,0,.06); border-radius: 3px; }
+
+  header { border-bottom: 2px solid #1c1c1e; padding-bottom: 16px; margin-bottom: 30px; }
+  h1 { font-size: 26px; font-weight: 700; letter-spacing: -.3px; line-height: 1.3; }
+  .sub { margin-top: 8px; font-size: 13px; color: #6b6b70; letter-spacing: .2px; }
+  .sub b { color: #1c1c1e; font-weight: 600; }
+
+  section { margin-bottom: 34px; }
+  h2 { font-size: 16px; font-weight: 700; letter-spacing: .2px;
+       display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  h2 .num { display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 3px; background: #1c1c1e; color: #fff;
+    font-size: 12px; font-weight: 700; letter-spacing: 0; }
+  h2 .tail { font-weight: 400; color: #6b6b70; font-size: 13px; margin-left: 2px; }
+
+  /* ===== 双泳道流程图：3 行 × 6 列 ===== */
+  .flow { display: grid; grid-template-columns: 82px repeat(6, 1fr);
+    grid-template-rows: auto 30px auto; column-gap: 20px; align-items: stretch; }
+  .lane-tag { display: flex; flex-direction: column; justify-content: center;
+    align-items: flex-start; gap: 3px; padding-right: 4px; }
+  .lane-tag .t { font-size: 13px; font-weight: 700; }
+  .lane-tag .s { font-size: 10px; color: #9a9aa0; line-height: 1.3; letter-spacing: .3px; }
+  .lane-tag.old .t { color: #8b95a1; }
+  .lane-tag.new .t { color: #0f766e; }
+
+  .node { position: relative; border-radius: 4px; padding: 10px 11px; font-size: 12px;
+    line-height: 1.5; border: 1px solid; min-height: 74px; display: flex; flex-direction: column; }
+  .node .k { display: block; font-size: 10px; font-weight: 700; letter-spacing: .4px; margin-bottom: 5px; }
+  .node.old { background: #f3f4f6; border-color: #dfe2e6; color: #5c636e; }
+  .node.old .k { color: #6b7280; opacity: .55; }
+  .node.new { background: #eefaf7; border-color: #a9ddd2; color: #14504a; }
+  .node.new .k { color: #0f766e; opacity: .75; }
+
+  .node::after { content: ""; position: absolute; right: -17px; top: 50%; width: 12px; height: 12px;
+    transform: translateY(-50%); background: no-repeat center/contain
+    url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6h7M6 3l3 3-3 3' stroke='%23b6bcc4' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+  .node.new::after { background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6h7M6 3l3 3-3 3' stroke='%2377c2b3' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+  .node.last::after { display: none; }
+
+  .mid { display: flex; align-items: center; justify-content: center; text-align: center;
+    font-size: 10.5px; font-weight: 600; line-height: 1.25; color: #b45309;
+    background: #fef6e7; border: 1px dashed #f0d5a8; border-radius: 3px; padding: 3px 5px; margin: 6px 0; }
+  .mid.keep { color: #9a9aa0; background: #fafafa; border-color: #e6e6e6; }
+
+  /* ===== 下方盘点区：两栏 ===== */
+  .prog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+  .card-h { font-size: 13px; font-weight: 700; margin-bottom: 4px;
+    display: flex; align-items: baseline; gap: 8px; }
+  .card-h em { font-style: normal; font-size: 11px; font-weight: 400; color: #8a8a90; }
+  .bar { height: 6px; background: #eceef0; border-radius: 3px; overflow: hidden;
+    display: flex; margin: 10px 0 8px; }
+  .bar i { display: block; height: 100%; }
+  .bar .done { background: #0f766e; }
+  .bar .wip { background: #e0a53f; }
+  .bar-cap { display: flex; justify-content: space-between; font-size: 11px;
+    color: #6b6b70; margin-bottom: 14px; }
+  .bar-cap b { color: #1c1c1e; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 11px; padding: 4px 8px; border-radius: 3px; line-height: 1.2; border: 1px solid; }
+  .chip.on { background: #eefaf7; border-color: #a9ddd2; color: #14504a; }
+  .chip.wip { background: #fef6e7; border-color: #f0d5a8; color: #8a5a0b; }
+  .chip.off { background: #f4f4f5; border-color: #e4e4e7; color: #9a9aa0; }
+  .legend { display: flex; gap: 14px; font-size: 10.5px; color: #8a8a90; margin-top: 12px; }
+  .legend span::before { content: ""; display: inline-block; width: 8px; height: 8px;
+    border-radius: 2px; margin-right: 5px; }
+  .legend .l-on::before { background: #a9ddd2; }
+  .legend .l-wip::before { background: #f0d5a8; }
+  .legend .l-off::before { background: #e4e4e7; }
+
+  .wh-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+  .wh { font-size: 11.5px; padding: 8px 6px; border-radius: 3px; text-align: center;
+    border: 1px solid; line-height: 1.3; }
+  .wh.on { background: #eefaf7; border-color: #a9ddd2; color: #14504a; font-weight: 600; }
+  .wh.off { background: #f4f4f5; border-color: #e4e4e7; color: #a1a1aa; }
+  .wh small { display: block; font-size: 9.5px; font-weight: 400; opacity: .7; margin-top: 2px; }
+
+  .tool-note { margin-top: 14px; padding: 8px 10px; background: #fafafa;
+    border-left: 2px solid #cfd4d9; border-radius: 0 3px 3px 0;
+    font-size: 11px; line-height: 1.5; color: #6b6b70; }
+  .tool-note b { color: #1c1c1e; font-weight: 700; margin-right: 6px; }
+
+  /* ===== 底部 ===== */
+  .bottom { margin-top: 30px; padding-top: 18px; border-top: 1px solid #e8e8e6;
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 30px; }
+  .bottom p { font-size: 12.5px; line-height: 1.65; color: #3a3a3e; }
+  .bottom p b { color: #0f766e; }
+  .next { font-size: 11.5px; color: #8a8a90; text-align: right; line-height: 1.7; white-space: nowrap; }
+  .next b { color: #1c1c1e; display: block; font-size: 12px; margin-bottom: 2px; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .page { width: 1080px; padding: 24px 30px; box-shadow: none; border-radius: 0; margin: 0;
+      transform: scale(.68); transform-origin: top left; }
+    @page { size: A4 portrait; margin: 8mm; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1>{{一句话说清这是什么变化}}</h1>
+    <div class="sub">{{部门}} · <b>{{启动时间}}</b> · 覆盖 <b>{{范围}}</b></div>
+  </header>
+
+  <!-- ===== 01 前后对比 ===== -->
+  <section>
+    <h2><span class="num">01</span>流程对比<span class="tail">{{一句话概括改了几处}}</span></h2>
+
+    <div class="flow">
+      <div class="lane-tag old"><span class="t">旧模式</span><span class="s">{{旧模式定语}}</span></div>
+      <div class="node old"><span class="k">① {{环节}}</span>{{旧做法}}<br>{{补充}}</div>
+      <div class="node old"><span class="k">② {{环节}}</span>{{旧做法}}<br>{{补充}}</div>
+      <div class="node old"><span class="k">③ {{环节}}</span>{{旧做法}}<br>{{量化}}</div>
+      <div class="node old"><span class="k">④ {{环节}}</span>{{旧做法}}<br>{{补充}}</div>
+      <div class="node old"><span class="k">⑤ {{环节}}</span>{{旧做法}}<br>{{补充}}</div>
+      <div class="node old last"><span class="k">⑥ {{环节}}</span>{{旧做法}}<br>{{补充}}</div>
+
+      <div></div>
+      <div class="mid keep">起点不变</div>
+      <div class="mid">{{旧}} → {{新}}</div>
+      <div class="mid">{{旧}} → {{新}}<br>{{最冲击的量化}}</div>
+      <div class="mid">{{旧}} → {{新}}</div>
+      <div class="mid">{{旧}} → {{新}}</div>
+      <div class="mid">{{旧}} → {{新}}</div>
+
+      <div class="lane-tag new"><span class="t">新模式</span><span class="s">{{新模式定语}}</span></div>
+      <div class="node new"><span class="k">① {{环节}}</span>{{新做法}}<br>{{补充}}</div>
+      <div class="node new"><span class="k">② {{环节}}</span>{{新做法}}<br>{{补充}}</div>
+      <div class="node new"><span class="k">③ {{环节}}</span>{{新做法}}<br>{{量化}}</div>
+      <div class="node new"><span class="k">④ {{环节}}</span>{{新做法}}<br>{{补充}}</div>
+      <div class="node new"><span class="k">⑤ {{环节}}</span>{{新做法}}<br>{{补充}}</div>
+      <div class="node new last"><span class="k">⑥ {{环节}}</span>{{新做法}}<br>{{补充}}</div>
+    </div>
+  </section>
+
+  <!-- ===== 02 现有进展 ===== -->
+  <section>
+    <h2><span class="num">02</span>现有进展<span class="tail">{{一句话概括进度}}</span></h2>
+
+    <div class="prog-grid">
+      <div>
+        <div class="card-h">岗位/对象覆盖 <em>共 {{N}} 个</em></div>
+        <div class="bar">
+          <i class="done" style="width:60%"></i>
+          <i class="wip" style="width:13.33%"></i>
+        </div>
+        <div class="bar-cap">
+          <span>已完成 <b>{{a}}</b>｜进行中 <b>{{b}}</b>｜未做 <b>{{c}}</b></span>
+          <span><b>{{x}}%</b> → 目标 <b>{{y}}%</b></span>
+        </div>
+        <div class="chips">
+          <span class="chip on">{{对象}}</span>
+          <span class="chip wip">{{对象}}</span>
+          <span class="chip off">{{对象}}</span>
+        </div>
+        <div class="legend">
+          <span class="l-on">已完成</span><span class="l-wip">进行中</span><span class="l-off">未做</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="card-h">区域/单元覆盖 <em>共 {{N}} 个</em></div>
+        <div class="bar"><i class="done" style="width:87.5%"></i></div>
+        <div class="bar-cap">
+          <span>已覆盖 <b>{{a}}</b>｜未覆盖 <b>{{b}}</b></span>
+          <span><b>{{x}}%</b></span>
+        </div>
+        <div class="wh-grid">
+          <span class="wh on">{{单元}}<small>已覆盖</small></span>
+          <span class="wh off">{{单元}}<small>未覆盖</small></span>
+        </div>
+        <div class="tool-note"><b>{{工具/手段}}</b>{{一句话说明现状与限制}}</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="bottom">
+    <p>{{核心判断：为什么值得做、能复制到哪。}}<b>{{最该被记住的一句话}}</b></p>
+    <div class="next">
+      <b>下一步</b>
+      {{事项1}} · {{事项2}}<br>{{事项3}} · {{事项4}}
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
